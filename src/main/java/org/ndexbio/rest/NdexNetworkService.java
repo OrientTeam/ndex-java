@@ -1,10 +1,6 @@
 package org.ndexbio.rest;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import org.codehaus.jackson.JsonNode;
 
@@ -22,7 +18,8 @@ public class NdexNetworkService {
 
     owner.addEdge("xOwnsNetwork", network);
 
-    network.setProperty("format", networkJDEx.get("format").asText());
+    if (networkJDEx.get("format") != null)
+      network.setProperty("format", networkJDEx.get("format").asText());
 
     final HashMap<String, OrientVertex> networkIndex = new HashMap<String, OrientVertex>();
     createNameSpaces(network, networkJDEx, orientGraph, networkIndex);
@@ -69,9 +66,15 @@ public class NdexNetworkService {
       JsonNode citation = citations.get(index);
 
       OrientVertex vCitation = orientGraph.addVertex("xCitation", (String) null);
-      vCitation.setProperty("identifier", citation.get("identifier").asText());
-      vCitation.setProperty("type", citation.get("type").asText());
-      vCitation.setProperty("title", citation.get("title").asText());
+      if (citation.get("identifier") != null)
+        vCitation.setProperty("identifier", citation.get("identifier").asText());
+
+      if (citation.get("type") != null)
+        vCitation.setProperty("type", citation.get("type").asText());
+
+      if (citation.get("title") != null)
+        vCitation.setProperty("title", citation.get("title").asText());
+
       vCitation.setProperty("contributors", asStringList(citation.get("contributors")));
 
       vCitation.setProperty("jdex_id", index);
@@ -102,7 +105,8 @@ public class NdexNetworkService {
       JsonNode support = supports.get(index);
       OrientVertex vSupport = orientGraph.addVertex("xSupport", (String) null);
       vSupport.setProperty("jdex_id", index);
-      vSupport.setProperty("text", support.get("text").asText());
+      if (support.get("text") != null)
+        vSupport.setProperty("text", support.get("text").asText());
 
       vSupport.save();
 
@@ -124,7 +128,9 @@ public class NdexNetworkService {
 
       OrientVertex vNamespace = orientGraph.addVertex("xNameSpace", (String) null);
       vNamespace.setProperty("jdex_id", index);
-      vNamespace.setProperty("prefix", namespace.get("prefix").asText());
+      if (namespace.get("prefix") != null)
+        vNamespace.setProperty("prefix", namespace.get("prefix").asText());
+
       vNamespace.setProperty("uri", namespace.get("uri"));
 
       vNamespace.save();
@@ -189,7 +195,7 @@ public class NdexNetworkService {
         vTerm = orientGraph.addVertex("xBaseTerm", (String) null);
         vTerm.setProperty("name", term.get("name").asText());
 
-      } else if (term.get("termFunction") != null && term.get("termFunction").asBoolean()) {
+      } else if (term.get("termFunction") != null) {
         vTerm = orientGraph.addVertex("xFunctionTerm", (String) null);
 
         functions.add(vTerm);
