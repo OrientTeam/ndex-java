@@ -2,8 +2,19 @@ package org.ndexbio.rest;
 
 import java.util.*;
 
+import com.orientechnologies.orient.core.metadata.schema.OType;
 import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.node.ArrayNode;
+import org.codehaus.jackson.node.ObjectNode;
 
+import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
+import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.orientechnologies.orient.core.id.ORID;
+import com.orientechnologies.orient.core.record.impl.ODocument;
+import com.orientechnologies.orient.core.sql.query.OSQLSynchQuery;
+import com.tinkerpop.blueprints.Direction;
+import com.tinkerpop.blueprints.Edge;
 import com.tinkerpop.blueprints.Vertex;
 import com.tinkerpop.blueprints.impls.orient.OrientEdge;
 import com.tinkerpop.blueprints.impls.orient.OrientGraph;
@@ -13,7 +24,7 @@ import com.tinkerpop.blueprints.impls.orient.OrientVertex;
  * @since 9/17/13
  */
 public class NdexNetworkService {
-  public void createNetwork(OrientVertex owner, JsonNode networkJDEx, OrientGraph orientGraph) {
+  public OrientVertex createNetwork(OrientVertex owner, JsonNode networkJDEx, OrientGraph orientGraph) {
     final OrientVertex network = orientGraph.addVertex("xNetwork", (String) null);
 
     owner.addEdge("xOwnsNetwork", network);
@@ -31,10 +42,157 @@ public class NdexNetworkService {
     createEdges(networkJDEx, network, networkIndex);
 
     network.save();
+
+    return network;
+  }
+
+  public void deleteNetwork(ORID networkRid, OrientGraph orientGraph) {
+    ODatabaseDocumentTx databaseDocumentTx = orientGraph.getRawGraph();
+    List<ODocument> allNetworkRecords = databaseDocumentTx.query(new OSQLSynchQuery<Object>("TRAVERSE * FROM " + networkRid));
+
+    for (ODocument networkRecord : allNetworkRecords) {
+      networkRecord.delete();
+    }
+  }
+
+  public ObjectNode findNetworks(String searchExpression, int limit, int offset, OrientGraph orientGraph, ObjectMapper objectMapper) {
+    int start = offset * limit;
+
+    final String descriptors = "properties.title as title, @rid as rid, out_nodes.size() as nodeCount, ndexEdges.size() as edgeCount";
+    String where_clause = "";
+    if (where_clause.length() > 0)
+      where_clause = " where properties.title.toUpperCase() like '%" + searchExpression
+          + "%' OR properties.description.toUpperCase() like '%" + searchExpression + "%'";
+
+    final String query = "select " + descriptors + " from xNetwork " + where_clause + " order by creation_date desc skip " + start
+        + " limit " + limit;
+    List<ODocument> networks = orientGraph.getRawGraph().query(new OSQLSynchQuery<ODocument>(query));
+
+		ObjectNode result = objectMapper.createObjectNode();
+		ArrayNode jsonNetworks = objectMapper.createArrayNode();
+		result.put("networks", jsonNetworks);
+
+		for (ODocument document : networks) {
+			ObjectNode network = objectMapper.createObjectNode();
+			jsonNetworks.add(network);
+
+			network.put("title", document.<String>field("title"));
+			network.put("jid", convertFromRID(document.<ORID>field("rid", OType.LINK)));
+			network.put("nodeCount", document.<Integer>field("nodeCount"));
+			network.put("edgesCount", document.<Integer>field("edgesCount"));
+		}
+
+		result.put("blockAmount", 5);
+
+		return result;
+  }
+
+  public JsonNode getNetwork(ORID networkRid, OrientGraph orientGraph) {
+    final OrientVertex vNetwork = orientGraph.getVertex(networkRid);
+    if (vNetwork == null)
+      return null;
+
+    ObjectMapper mapper = new ObjectMapper();
+    final ObjectNode result = mapper.createObjectNode();
+
+    final Map<String, String> propertiesMap = vNetwork.getProperty("properties");
+    result.put("title", propertiesMap.get("title"));
+
+    final ObjectNode namespaces = mapper.createObjectNode();
+    result.put("namespaces", namespaces);
+
+    readNamespaces(vNetwork, mapper, namespaces);
+
+    final ObjectNode terms = mapper.createObjectNode();
+    result.put("terms", terms);
+
+    readTerms(vNetwork, mapper, terms);
+
+    final ObjectNode nodes = mapper.createObjectNode();
+    result.put("nodes", nodes);
+
+    readNodes(orientGraph, vNetwork, mapper, nodes);
+
+    final ArrayNode edges = mapper.createArrayNode();
+    result.put("edges", edges);
+
+    readEdges(orientGraph, vNetwork, mapper, edges);
+
+    return result;
+  }
+
+  private void readEdges(OrientGraph orientGraph, OrientVertex vNetwork, ObjectMapper mapper, ArrayNode edges) {
+    Set<OIdentifiable> dEdges = vNetwork.getProperty("ndexEdges");
+    for (OIdentifiable dEdge : dEdges) {
+      Edge eEdge = orientGraph.getEdge(dEdge);
+
+      ObjectNode edge = mapper.createObjectNode();
+      edges.add(edge);
+
+      Vertex vPredicate = eEdge.getProperty("p");
+      edge.put("p", vPredicate.<String> getProperty("jdex_id"));
+
+      Vertex vSubject = eEdge.getVertex(Direction.OUT);
+      Vertex vObject = eEdge.getVertex(Direction.IN);
+
+      edge.put("s", vSubject.<String> getProperty("jdex_id"));
+      edge.put("o", vObject.<String> getProperty("jdex_id"));
+      edge.put("jid", convertFromRID((ORID) eEdge.getId()));
+    }
+  }
+
+  private void readNodes(OrientGraph orientGraph, OrientVertex vNetwork, ObjectMapper mapper, ObjectNode nodes) {
+    Iterable<Edge> eNodes = vNetwork.getEdges(Direction.OUT);
+    for (Edge eNode : eNodes) {
+      Vertex vNode = eNode.getVertex(Direction.IN);
+
+      ObjectNode node = mapper.createObjectNode();
+      nodes.put(vNode.<String> getProperty("jdex_id"), node);
+
+      node.put("name", vNode.<String> getProperty("name"));
+      node.put("jid", convertFromRID((ORID) vNode.getId()));
+
+      final OIdentifiable dRepresents = vNode.<OIdentifiable> getProperty("represents");
+      if (dRepresents != null) {
+        final Vertex vRepresents = orientGraph.getVertex(dRepresents);
+        node.put("represents", vRepresents.<String> getProperty("jdex_id"));
+      }
+    }
+  }
+
+  private void readTerms(OrientVertex vNetwork, ObjectMapper mapper, ObjectNode terms) {
+    Iterable<Edge> eTerms = vNetwork.getEdges(Direction.OUT, "terms");
+    for (Edge eTerm : eTerms) {
+      Vertex vTerm = eTerm.getVertex(Direction.IN);
+
+      final ObjectNode term = mapper.createObjectNode();
+      terms.put(vTerm.<String> getProperty("jdex_id"), term);
+
+      term.put("name", vTerm.<String> getProperty("name"));
+      term.put("jid", convertFromRID((ORID) vTerm.getId()));
+      // term.put("nsid", );
+    }
+  }
+
+  private void readNamespaces(OrientVertex vNetwork, ObjectMapper mapper, ObjectNode namespaces) {
+    Iterable<Edge> edges = vNetwork.getEdges(Direction.OUT, "namespaces");
+    for (Edge edge : edges) {
+      ObjectNode namespace = mapper.createObjectNode();
+      Vertex vNs = edge.getVertex(Direction.IN);
+
+      namespaces.put(vNs.<String> getProperty("jdex_id"), namespace);
+      namespace.put("prefix", vNs.<String> getProperty("prefix"));
+      namespace.put("rid", convertFromRID((ORID) vNs.getId()));
+      namespace.put("uri", vNs.<String> getProperty("uri"));
+    }
+  }
+
+  private String convertFromRID(ORID rid) {
+    return rid.toString().replace("#", "C").replace(":", "R");
   }
 
   private void createEdges(JsonNode networkJDEx, OrientVertex network, HashMap<String, OrientVertex> networkIndex) {
-    final ArrayList<OrientEdge> allEdges = new ArrayList<OrientEdge>();
+    final Set<ODocument> allEdges = new HashSet<ODocument>();
 
     final JsonNode edges = networkJDEx.get("edges");
     final Iterator<String> iterator = edges.getFieldNames();
@@ -50,10 +208,10 @@ public class NdexNetworkService {
 
       edge.save();
 
-      allEdges.add(edge);
+      allEdges.add(edge.getRecord());
     }
 
-    network.setProperty("edges", allEdges);
+    network.setProperty("ndexEdges", allEdges);
     network.save();
   }
 
@@ -151,10 +309,10 @@ public class NdexNetworkService {
 
       OrientVertex vNode = orientGraph.addVertex("xNode", (String) null);
       if (node.get("name") != null)
-        vNode.setProperty("name", node.get("name"));
+        vNode.setProperty("name", node.get("name").asText());
 
       if (node.get("represents") != null)
-        vNode.setProperty("represents", loadFromIndex(networkIndex, node, "represents"));
+        vNode.setProperty("represents", loadFromIndex(networkIndex, node, "represents").getId());
 
       vNode.setProperty("jdex_id", index);
 
