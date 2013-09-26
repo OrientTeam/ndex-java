@@ -6,6 +6,7 @@ import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.node.ArrayNode;
 import org.codehaus.jackson.node.ObjectNode;
+import org.ndexbio.rest.utils.RidConverter;
 
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.core.db.record.OIdentifiable;
@@ -25,19 +26,69 @@ import com.tinkerpop.blueprints.impls.orient.OrientVertex;
  * @since 9/17/13
  */
 public class NdexNetworkService {
+  public static final NdexNetworkService INSTANCE = new NdexNetworkService();
 
   public void init(OrientGraph orientGraph) {
     orientGraph.getRawGraph().commit();
 
-    OClass networkClass = orientGraph.createVertexType("xNetwork");
-    networkClass.createProperty("ndexEdges", OType.LINKSET);
-    networkClass.createProperty("format", OType.STRING);
+    if (orientGraph.getVertexType("xNetwork") == null) {
+      OClass networkClass = orientGraph.createVertexType("xNetwork");
+      networkClass.createProperty("ndexEdges", OType.LINKSET);
+      networkClass.createProperty("format", OType.STRING);
+      networkClass.createProperty("properties", OType.EMBEDDEDMAP);
+    }
 
-    OClass nameSpaceClass = orientGraph.createVertexType("xNameSpace");
-    OClass userClass = orientGraph.createVertexType("xUser");
-    OClass baseTermClass = orientGraph.createVertexType("xBaseTerm");
-    OClass nodeClass = orientGraph.createVertexType("xNode");
-    OClass edgeClass = orientGraph.createEdgeType("xEdge");
+    if (orientGraph.getVertexType("xNameSpace") == null) {
+      OClass nameSpaceClass = orientGraph.createVertexType("xNameSpace");
+      nameSpaceClass.createProperty("jdex_id", OType.STRING);
+      nameSpaceClass.createProperty("prefix", OType.STRING);
+      nameSpaceClass.createProperty("uri", OType.STRING);
+    }
+
+    if (orientGraph.getVertexType("xUser") == null) {
+      OClass userClass = orientGraph.createVertexType("xUser");
+    }
+
+    if (orientGraph.getVertexType("xTerm") == null) {
+      OClass termClass = orientGraph.createVertexType("xTerm");
+    }
+
+    if (orientGraph.getVertexType("xBaseTerm") == null) {
+      OClass baseTermClass = orientGraph.createVertexType("xBaseTerm", "xTerm");
+      baseTermClass.createProperty("jdex_id", OType.STRING);
+      baseTermClass.createProperty("name", OType.STRING);
+    }
+
+    if (orientGraph.getVertexType("xFunctionTerm") == null) {
+      OClass functionTermClass = orientGraph.createVertexType("xFunctionTerm", "xTerm");
+    }
+
+    if (orientGraph.getVertexType("xNode") == null) {
+      OClass nodeClass = orientGraph.createVertexType("xNode");
+      nodeClass.createProperty("name", OType.STRING);
+      nodeClass.createProperty("jdex_id", OType.STRING);
+      nodeClass.createProperty("represents", OType.LINK);
+    }
+
+    if (orientGraph.getEdgeType("xEdge") == null) {
+      OClass edgeClass = orientGraph.createEdgeType("xEdge");
+      edgeClass.createProperty("p", OType.LINK);
+      edgeClass.createProperty("s", OType.LINK);
+    }
+
+    if (orientGraph.getVertexType("xCitation") == null) {
+      OClass citationClass = orientGraph.createVertexType("xCitation");
+      citationClass.createProperty("identifier", OType.STRING);
+      citationClass.createProperty("type", OType.STRING);
+      citationClass.createProperty("title", OType.STRING);
+      citationClass.createProperty("contributors", OType.EMBEDDEDLIST);
+    }
+
+    if (orientGraph.getVertexType("xSupport") == null) {
+      OClass supportClass = orientGraph.createVertexType("xSupport");
+      supportClass.createProperty("jdex_id", OType.STRING);
+      supportClass.createProperty("text", OType.STRING);
+    }
   }
 
   public OrientVertex createNetwork(OrientVertex owner, JsonNode networkJDEx, OrientGraph orientGraph) {
@@ -93,7 +144,7 @@ public class NdexNetworkService {
       jsonNetworks.add(network);
 
       network.put("title", document.<String> field("title"));
-      network.put("jid", convertFromRID(document.<ORID> field("rid", OType.LINK)));
+      network.put("jid", RidConverter.convertFromRID(document.<ORID> field("rid", OType.LINK)));
       network.put("nodeCount", document.<Integer> field("nodeCount"));
       network.put("edgesCount", document.<Integer> field("edgesCount"));
     }
@@ -174,7 +225,7 @@ public class NdexNetworkService {
         final ObjectNode edge = objectMapper.createObjectNode();
         edges.add(edge);
 
-        readEdge(orientGraph.getEdge(ndexEdge), edge);
+        readEdge(orientGraph.getEdge(ndexEdge), edge, orientGraph);
       }
       counter++;
 
@@ -235,12 +286,12 @@ public class NdexNetworkService {
       ObjectNode edge = mapper.createObjectNode();
       edges.add(edge);
 
-      readEdge(eEdge, edge);
+      readEdge(eEdge, edge, orientGraph);
     }
   }
 
-  private void readEdge(Edge eEdge, ObjectNode edge) {
-    Vertex vPredicate = eEdge.getProperty("p");
+  private void readEdge(Edge eEdge, ObjectNode edge, OrientGraph orientGraph) {
+    Vertex vPredicate = orientGraph.getVertex(eEdge.getProperty("p"));
     edge.put("p", vPredicate.<String> getProperty("jdex_id"));
 
     Vertex vSubject = eEdge.getVertex(Direction.OUT);
@@ -248,7 +299,7 @@ public class NdexNetworkService {
 
     edge.put("s", vSubject.<String> getProperty("jdex_id"));
     edge.put("o", vObject.<String> getProperty("jdex_id"));
-    edge.put("jid", convertFromRID((ORID) eEdge.getId()));
+    edge.put("jid", RidConverter.convertFromRID((ORID) eEdge.getId()));
   }
 
   private void readNodes(OrientGraph orientGraph, Vertex vNetwork, ObjectMapper mapper, ObjectNode nodes) {
@@ -265,7 +316,7 @@ public class NdexNetworkService {
 
   private void readNode(OrientGraph orientGraph, Vertex vNode, ObjectNode node) {
     node.put("name", vNode.<String> getProperty("name"));
-    node.put("jid", convertFromRID((ORID) vNode.getId()));
+    node.put("jid", RidConverter.convertFromRID((ORID) vNode.getId()));
 
     final OIdentifiable dRepresents = vNode.getProperty("represents");
     if (dRepresents != null) {
@@ -283,7 +334,7 @@ public class NdexNetworkService {
       terms.put(vTerm.<String> getProperty("jdex_id"), term);
 
       term.put("name", vTerm.<String> getProperty("name"));
-      term.put("jid", convertFromRID((ORID) vTerm.getId()));
+      term.put("jid", RidConverter.convertFromRID((ORID) vTerm.getId()));
     }
   }
 
@@ -295,13 +346,9 @@ public class NdexNetworkService {
 
       namespaces.put(vNs.<String> getProperty("jdex_id"), namespace);
       namespace.put("prefix", vNs.<String> getProperty("prefix"));
-      namespace.put("jid", convertFromRID((ORID) vNs.getId()));
+      namespace.put("jid", RidConverter.convertFromRID((ORID) vNs.getId()));
       namespace.put("uri", vNs.<String> getProperty("uri"));
     }
-  }
-
-  private String convertFromRID(ORID rid) {
-    return rid.toString().replace("#", "C").replace(":", "R");
   }
 
   private void createEdges(JsonNode networkJDEx, OrientVertex network, HashMap<String, OrientVertex> networkIndex) {
@@ -316,7 +363,7 @@ public class NdexNetworkService {
       final OrientVertex object = loadFromIndex(networkIndex, edgeJDEx, "o");
       final OrientEdge edge = subject.addEdge("xEdge", object, null, null, (Object[]) null);
 
-      edge.setProperty("p", loadFromIndex(networkIndex, edgeJDEx, "p"));
+      edge.setProperty("p", loadFromIndex(networkIndex, edgeJDEx, "p").getRecord());
       edge.setProperty("n", network.getRecord());
 
       edge.save();
@@ -393,6 +440,7 @@ public class NdexNetworkService {
       HashMap<String, OrientVertex> networkIndex) {
     JsonNode namespaces = networkJDEx.get("namespaces");
     Iterator<String> namespacesIterator = namespaces.getFieldNames();
+
     while (namespacesIterator.hasNext()) {
       String index = namespacesIterator.next();
       JsonNode namespace = namespaces.get(index);
@@ -402,7 +450,7 @@ public class NdexNetworkService {
       if (namespace.get("prefix") != null)
         vNamespace.setProperty("prefix", namespace.get("prefix").asText());
 
-      vNamespace.setProperty("uri", namespace.get("uri"));
+      vNamespace.setProperty("uri", namespace.get("uri").asText());
 
       vNamespace.save();
 
