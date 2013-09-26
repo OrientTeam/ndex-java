@@ -10,10 +10,6 @@
         <dependencySet>
             <outputDirectory>/</outputDirectory>
             <scope>runtime</scope>
-            <excludes>
-                <exclude>com.orientechnologies:orientdb-server</exclude>
-                <exclude>com.orientechnologies:orientdb-graphdb</exclude>
-            </excludes>
         </dependencySet>
     </dependencySets>
 </assembly>
