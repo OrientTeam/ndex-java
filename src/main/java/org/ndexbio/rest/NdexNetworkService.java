@@ -114,7 +114,10 @@ public class NdexNetworkService {
     return network;
   }
 
-  public void deleteNetwork(ORID networkRid, OrientGraph orientGraph) {
+  public boolean deleteNetwork(ORID networkRid, OrientGraph orientGraph) {
+    if (orientGraph.getVertex(networkRid) == null)
+      return false;
+
     ODatabaseDocumentTx databaseDocumentTx = orientGraph.getRawGraph();
     List<ODocument> allNetworkRecords = databaseDocumentTx.query(new OSQLSynchQuery<Object>("select @rid from (TRAVERSE * FROM "
         + networkRid + ") where @class <> 'xUser'"));
@@ -125,6 +128,8 @@ public class NdexNetworkService {
       if (element != null)
         element.remove();
     }
+
+    return true;
   }
 
   public ObjectNode findNetworks(String searchExpression, int limit, int offset, OrientGraph orientGraph, ObjectMapper objectMapper) {

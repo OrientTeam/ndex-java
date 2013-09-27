@@ -2,6 +2,7 @@ package org.ndexbio.rest;
 
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.node.ObjectNode;
 import org.ndexbio.rest.utils.RidConverter;
 
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
@@ -41,10 +42,12 @@ public class DeleteNetworkPostCommand extends OServerCommandAuthenticatedDbAbstr
     ndexNetworkService.init(orientGraph);
     try {
 
-      ndexNetworkService.deleteNetwork(networkRid, orientGraph);
+      boolean deleted = ndexNetworkService.deleteNetwork(networkRid, orientGraph);
+      ObjectNode result = objectMapper.createObjectNode();
+      result.put("deleted", deleted);
 
-      iResponse.send(OHttpUtils.STATUS_OK_CODE, OHttpUtils.STATUS_OK_DESCRIPTION, OHttpUtils.CONTENT_TEXT_PLAIN, "Network with id "
-          + networkId + " was successfully deleted.", null, true);
+      iResponse.send(OHttpUtils.STATUS_OK_CODE, OHttpUtils.STATUS_OK_DESCRIPTION, OHttpUtils.CONTENT_JSON, result.toString(), null,
+          true);
     } finally {
       orientGraph.shutdown();
     }
