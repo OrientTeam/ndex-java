@@ -62,6 +62,10 @@ public class NdexNetworkService {
 
     if (orientGraph.getVertexType("xFunctionTerm") == null) {
       OClass functionTermClass = orientGraph.createVertexType("xFunctionTerm", "xTerm");
+      functionTermClass.createProperty("linkParameters", OType.LINKSET);
+      functionTermClass.createProperty("textParameters", OType.EMBEDDEDSET);
+
+      functionTermClass.createProperty("termFunction", OType.LINK);
     }
 
     if (orientGraph.getVertexType("xNode") == null) {
@@ -544,22 +548,25 @@ public class NdexNetworkService {
   private void postProcessFunctions(List<OrientVertex> functionTerms, JsonNode terms, HashMap<String, OrientVertex> networkIndex) {
     for (OrientVertex functionTerm : functionTerms) {
       final JsonNode jTerm = terms.get((String) functionTerm.getProperty("jdex_id"));
-      functionTerm.setProperty("termFunction", loadFromIndex(networkIndex, jTerm, "termFunction"));
+      functionTerm.setProperty("termFunction", loadFromIndex(networkIndex, jTerm, "termFunction").getRecord());
 
-      final ArrayList<Object> params = new ArrayList<Object>();
+      final Set<ODocument> linkParams = new HashSet<ODocument>();
+      final Set<String> textParams = new HashSet<String>();
+
       final JsonNode jParameters = jTerm.get("parameters");
       final Iterator<String> iterator = jParameters.getFieldNames();
       while (iterator.hasNext()) {
         final String index = iterator.next();
         final JsonNode jParam = jParameters.get(index);
         if (jParam.get("term") != null) {
-          params.add(loadFromIndex(networkIndex, jParam, "term"));
+          linkParams.add(loadFromIndex(networkIndex, jParam, "term").getRecord());
         } else {
-          params.add(jParam.asText());
+          textParams.add(jParam.asText());
         }
       }
 
-      functionTerm.setProperty("parameters", params);
+      functionTerm.setProperty("linkParameters", linkParams);
+      functionTerm.setProperty("textParameters", textParams);
       functionTerm.save();
     }
   }

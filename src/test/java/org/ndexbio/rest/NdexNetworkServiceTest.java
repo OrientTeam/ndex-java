@@ -19,6 +19,7 @@ import com.tinkerpop.blueprints.impls.orient.OrientVertex;
 
 @Test
 public class NdexNetworkServiceTest {
+  private final String       jdexFile           = "/org/ndexbio/rest/testNetwork.jdex";
   private OrientGraph        orientGraph;
   private NdexNetworkService ndexNetworkService = new NdexNetworkService();
 
@@ -38,17 +39,16 @@ public class NdexNetworkServiceTest {
 
   public void basicNetworkLoadingTest() throws Exception {
     final ObjectMapper objectMapper = new ObjectMapper();
-    JsonNode rootNode = objectMapper.readTree(NdexNetworkServiceTest.class
-        .getResourceAsStream("/org/ndexbio/rest/testNetwork.jdex"));
+    JsonNode rootNode = objectMapper.readTree(NdexNetworkServiceTest.class.getResourceAsStream(jdexFile));
 
     final OrientVertex xUser = orientGraph.addVertex("xUser", (String) null);
     ndexNetworkService.createNetwork(xUser, rootNode, orientGraph);
+    orientGraph.commit();
   }
 
   public void getNetworkTest() throws Exception {
     final ObjectMapper objectMapper = new ObjectMapper();
-    JsonNode rootNode = objectMapper.readTree(NdexNetworkServiceTest.class
-        .getResourceAsStream("/org/ndexbio/rest/testNetwork.jdex"));
+    JsonNode rootNode = objectMapper.readTree(NdexNetworkServiceTest.class.getResourceAsStream(jdexFile));
 
     final OrientVertex xUser = orientGraph.addVertex("xUser", (String) null);
 
@@ -63,8 +63,7 @@ public class NdexNetworkServiceTest {
 
   public void deleteNetworkTest() throws Exception {
     final ObjectMapper objectMapper = new ObjectMapper();
-    JsonNode rootNode = objectMapper.readTree(NdexNetworkServiceTest.class
-        .getResourceAsStream("/org/ndexbio/rest/testNetwork.jdex"));
+    JsonNode rootNode = objectMapper.readTree(NdexNetworkServiceTest.class.getResourceAsStream(jdexFile));
 
     final OrientVertex xUser = orientGraph.addVertex("xUser", (String) null);
 
@@ -98,8 +97,7 @@ public class NdexNetworkServiceTest {
 
   public void testFindNetwork() throws Exception {
     final ObjectMapper objectMapper = new ObjectMapper();
-    JsonNode rootNode = objectMapper.readTree(NdexNetworkServiceTest.class
-        .getResourceAsStream("/org/ndexbio/rest/testNetwork.jdex"));
+    JsonNode rootNode = objectMapper.readTree(NdexNetworkServiceTest.class.getResourceAsStream(jdexFile));
 
     final OrientVertex xUser = orientGraph.addVertex("xUser", (String) null);
 
@@ -113,8 +111,7 @@ public class NdexNetworkServiceTest {
 
   public void testGetNetworkByEdges() throws Exception {
     final ObjectMapper objectMapper = new ObjectMapper();
-    JsonNode rootNode = objectMapper.readTree(NdexNetworkServiceTest.class
-        .getResourceAsStream("/org/ndexbio/rest/testNetwork.jdex"));
+    JsonNode rootNode = objectMapper.readTree(NdexNetworkServiceTest.class.getResourceAsStream(jdexFile));
 
     final OrientVertex xUser = orientGraph.addVertex("xUser", (String) null);
 
@@ -128,8 +125,7 @@ public class NdexNetworkServiceTest {
 
   public void testGetNetworkByNodes() throws Exception {
     final ObjectMapper objectMapper = new ObjectMapper();
-    JsonNode rootNode = objectMapper.readTree(NdexNetworkServiceTest.class
-        .getResourceAsStream("/org/ndexbio/rest/testNetwork.jdex"));
+    JsonNode rootNode = objectMapper.readTree(NdexNetworkServiceTest.class.getResourceAsStream(jdexFile));
 
     final OrientVertex xUser = orientGraph.addVertex("xUser", (String) null);
 
