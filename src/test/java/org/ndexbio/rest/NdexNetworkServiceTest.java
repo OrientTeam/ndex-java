@@ -82,13 +82,18 @@ public class NdexNetworkServiceTest {
     Set<String> clusterNames = new HashSet<String>(databaseDocumentTx.getClusterNames());
 
     for (String clusterName : clusterNames) {
-      if (!(clusterName.startsWith("x") || clusterName.equals("default")))
+      if (!(clusterName.startsWith("x") || clusterName.equals("default")) || clusterName.equals("xuser"))
         continue;
 
       int clusterId = databaseDocumentTx.getClusterIdByName(clusterName);
       OCluster cluster = databaseDocumentTx.getStorage().getClusterById(clusterId);
       Assert.assertEquals(cluster.getEntries(), 0);
     }
+
+    int userClusterId = databaseDocumentTx.getClusterIdByName("xUser");
+    OCluster userCluster = databaseDocumentTx.getStorage().getClusterById(userClusterId);
+    Assert.assertEquals(userCluster.getEntries(), 1);
+
   }
 
   public void testFindNetwork() throws Exception {
@@ -121,18 +126,18 @@ public class NdexNetworkServiceTest {
     ndexNetworkService.getNetworkByEdges(networkId, 0, 100, orientGraph, objectMapper);
   }
 
-	public void testGetNetworkByNodes() throws Exception {
-		final ObjectMapper objectMapper = new ObjectMapper();
-		JsonNode rootNode = objectMapper.readTree(NdexNetworkServiceTest.class
-						.getResourceAsStream("/org/ndexbio/rest/testNetwork.jdex"));
+  public void testGetNetworkByNodes() throws Exception {
+    final ObjectMapper objectMapper = new ObjectMapper();
+    JsonNode rootNode = objectMapper.readTree(NdexNetworkServiceTest.class
+        .getResourceAsStream("/org/ndexbio/rest/testNetwork.jdex"));
 
-		final OrientVertex xUser = orientGraph.addVertex("xUser", (String) null);
+    final OrientVertex xUser = orientGraph.addVertex("xUser", (String) null);
 
-		OrientVertex network = ndexNetworkService.createNetwork(xUser, rootNode, orientGraph);
-		orientGraph.commit();
+    OrientVertex network = ndexNetworkService.createNetwork(xUser, rootNode, orientGraph);
+    orientGraph.commit();
 
-		final ORID networkId = network.getIdentity();
+    final ORID networkId = network.getIdentity();
 
-		ndexNetworkService.getNetworkByNodes(networkId, 0, 100, orientGraph, objectMapper);
-	}
+    ndexNetworkService.getNetworkByNodes(networkId, 0, 100, orientGraph, objectMapper);
+  }
 }

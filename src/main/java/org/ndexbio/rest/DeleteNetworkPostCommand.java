@@ -1,5 +1,7 @@
 package org.ndexbio.rest;
 
+import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.ndexbio.rest.utils.RidConverter;
 
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
@@ -28,12 +30,16 @@ public class DeleteNetworkPostCommand extends OServerCommandAuthenticatedDbAbstr
     checkSyntax(iRequest.url, 2, "Syntax error: ndexNetworkDelete/<database>");
     iRequest.data.commandInfo = "Execute ndex network deletion";
 
+    final ObjectMapper objectMapper = new ObjectMapper();
+    final JsonNode rootNode = objectMapper.readTree(iRequest.content);
+
+    final String networkId = rootNode.get("networkid").asText();
+    final ORID networkRid = RidConverter.convertToRID(networkId);
+
     ODatabaseDocumentTx db = getProfiledDatabaseInstance(iRequest);
     OrientGraph orientGraph = new OrientGraph(db);
     ndexNetworkService.init(orientGraph);
     try {
-      final String networkId = iRequest.parameters.get("networkid");
-      final ORID networkRid = RidConverter.convertToRID(networkId);
 
       ndexNetworkService.deleteNetwork(networkRid, orientGraph);
 

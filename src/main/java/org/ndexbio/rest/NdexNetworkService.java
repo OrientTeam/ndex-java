@@ -19,6 +19,7 @@ import com.tinkerpop.blueprints.Direction;
 import com.tinkerpop.blueprints.Edge;
 import com.tinkerpop.blueprints.Vertex;
 import com.tinkerpop.blueprints.impls.orient.OrientEdge;
+import com.tinkerpop.blueprints.impls.orient.OrientElement;
 import com.tinkerpop.blueprints.impls.orient.OrientGraph;
 import com.tinkerpop.blueprints.impls.orient.OrientVertex;
 
@@ -115,10 +116,14 @@ public class NdexNetworkService {
 
   public void deleteNetwork(ORID networkRid, OrientGraph orientGraph) {
     ODatabaseDocumentTx databaseDocumentTx = orientGraph.getRawGraph();
-    List<ODocument> allNetworkRecords = databaseDocumentTx.query(new OSQLSynchQuery<Object>("TRAVERSE * FROM " + networkRid));
+    List<ODocument> allNetworkRecords = databaseDocumentTx.query(new OSQLSynchQuery<Object>("select @rid from (TRAVERSE * FROM "
+        + networkRid + ") where @class <> 'xUser'"));
 
-    for (ODocument networkRecord : allNetworkRecords) {
-      networkRecord.delete();
+    for (ODocument networkRecordId : allNetworkRecords) {
+      ORID recordId = networkRecordId.field("rid", OType.LINK);
+      OrientElement element = orientGraph.getElement(recordId);
+      if (element != null)
+        element.remove();
     }
   }
 
