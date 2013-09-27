@@ -31,26 +31,27 @@ public class GetNetworkByEdgesGetCommand extends OServerCommandAuthenticatedDbAb
 
     iRequest.data.commandInfo = "Execute ndex network get by edges";
 
-    final ObjectMapper objectMapper = new ObjectMapper();
-    final JsonNode rootNode = objectMapper.readTree(iRequest.content);
-    final String networkid = rootNode.get("networkid").asText();
+    final String networkid = iRequest.parameters.get("networkid");
     final ORID networkRid = RidConverter.convertToRID(networkid);
 
     int limit;
-    if (rootNode.get("limit") != null)
-      limit = rootNode.get("limin").asInt();
+    if (iRequest.parameters.get("limit") != null)
+      limit = Integer.parseInt(iRequest.parameters.get("limit"));
     else
       limit = 100;
 
     int offset;
-    if (rootNode.get("offset") != null)
-      offset = rootNode.get("offset").asInt();
+    if (iRequest.parameters.get("offset") != null)
+      offset = Integer.parseInt(iRequest.parameters.get("offset"));
     else
       offset = 0;
+
+    final ObjectMapper objectMapper = new ObjectMapper();
 
     ODatabaseDocumentTx db = getProfiledDatabaseInstance(iRequest);
     OrientGraph orientGraph = new OrientGraph(db);
     ndexNetworkService.init(orientGraph);
+
     try {
       JsonNode network = ndexNetworkService.getNetworkByEdges(networkRid, offset, limit, orientGraph, objectMapper);
 
