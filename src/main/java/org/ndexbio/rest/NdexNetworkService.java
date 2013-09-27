@@ -37,6 +37,8 @@ public class NdexNetworkService {
       networkClass.createProperty("ndexEdges", OType.LINKSET);
       networkClass.createProperty("format", OType.STRING);
       networkClass.createProperty("properties", OType.EMBEDDEDMAP);
+      networkClass.createProperty("edgesCount", OType.INTEGER);
+      networkClass.createProperty("nodesCount", OType.INTEGER);
     }
 
     if (orientGraph.getVertexType("xNameSpace") == null) {
@@ -139,7 +141,7 @@ public class NdexNetworkService {
   public ObjectNode findNetworks(String searchExpression, int limit, int offset, OrientGraph orientGraph, ObjectMapper objectMapper) {
     int start = offset * limit;
 
-    final String descriptors = "properties.title as title, @rid as rid, out('nodes').size() as nodeCount, ndexEdges.size() as edgeCount";
+    final String descriptors = "properties.title as title, @rid as rid, nodesCount as nodeCount, edgesCount as edgeCount";
     String where_clause = "";
     if (where_clause.length() > 0)
       where_clause = " where properties.title.toUpperCase() like '%" + searchExpression
@@ -265,7 +267,7 @@ public class NdexNetworkService {
 
     readTerms(vNetwork, objectMapper, terms);
 
-    long nodeCount = vNetwork.countEdges(Direction.OUT, "nodes");
+    int nodeCount = vNetwork.getProperty("nodesCount");
     Iterable<Vertex> vNodes = vNetwork.getVertices(Direction.OUT, "nodes");
 
     final int blockAmount = (int) Math.ceil(((double) nodeCount) / limit);
@@ -386,7 +388,7 @@ public class NdexNetworkService {
     }
 
     network.setProperty("ndexEdges", allEdges);
-    network.save();
+    network.setProperty("edgesCount", allEdges.size());
   }
 
   private void createCitations(JsonNode networkJDEx, OrientGraph orientGraph, OrientVertex network,
@@ -478,6 +480,8 @@ public class NdexNetworkService {
       HashMap<String, OrientVertex> networkIndex) {
     JsonNode nodes = networkJDEx.get("nodes");
     Iterator<String> nodesIterator = nodes.getFieldNames();
+    int nodesCount = 0;
+
     while (nodesIterator.hasNext()) {
       String index = nodesIterator.next();
       JsonNode node = nodes.get(index);
@@ -496,7 +500,10 @@ public class NdexNetworkService {
       network.addEdge("nodes", vNode);
 
       networkIndex.put(index, vNode);
+      nodesCount++;
     }
+
+    network.setProperty("nodesCount", nodesCount);
   }
 
   private void createProperties(JsonNode networkJDEx, Vertex network) {
