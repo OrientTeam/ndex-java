@@ -267,7 +267,7 @@ public class NdexNetworkService {
 
     readTerms(vNetwork, objectMapper, terms);
 
-    int nodeCount = vNetwork.getProperty("nodesCount");
+    int nodeCount = vNetwork.<Integer> getProperty("nodesCount");
     Iterable<Vertex> vNodes = vNetwork.getVertices(Direction.OUT, "nodes");
 
     final int blockAmount = (int) Math.ceil(((double) nodeCount) / limit);
