@@ -8,6 +8,20 @@
     <artifactId>ndexbio-rest</artifactId>
     <version>0.0.1-SNAPSHOT</version>
 
+    <repositories>
+        <repository>
+            <id>oss.sonatype.org</id>
+            <name>OrientDB Maven2 Repository</name>
+            <url>https://oss.sonatype.org/content/groups/public/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
     <build>
         <plugins>
             <plugin>
