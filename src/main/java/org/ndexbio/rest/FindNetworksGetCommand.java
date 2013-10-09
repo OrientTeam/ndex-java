@@ -9,7 +9,7 @@ import com.orientechnologies.orient.server.network.protocol.http.OHttpRequest;
 import com.orientechnologies.orient.server.network.protocol.http.OHttpResponse;
 import com.orientechnologies.orient.server.network.protocol.http.OHttpUtils;
 import com.orientechnologies.orient.server.network.protocol.http.command.OServerCommandAuthenticatedDbAbstract;
-import com.tinkerpop.blueprints.impls.orient.OrientGraph;
+import com.tinkerpop.blueprints.impls.orient.OrientGraphNoTx;
 
 /**
  * @author Andrey Lomakin <a href="mailto:lomakin.andrey@gmail.com">Andrey Lomakin</a>
@@ -49,7 +49,7 @@ public class FindNetworksGetCommand extends OServerCommandAuthenticatedDbAbstrac
       offset = 0;
 
     ODatabaseDocumentTx db = getProfiledDatabaseInstance(iRequest);
-    OrientGraph orientGraph = new OrientGraph(db);
+    OrientGraphNoTx orientGraph = new OrientGraphNoTx(db);
     ndexNetworkService.init(orientGraph);
     try {
 

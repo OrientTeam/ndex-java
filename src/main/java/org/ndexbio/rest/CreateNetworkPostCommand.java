@@ -12,7 +12,7 @@ import com.orientechnologies.orient.server.network.protocol.http.OHttpRequest;
 import com.orientechnologies.orient.server.network.protocol.http.OHttpResponse;
 import com.orientechnologies.orient.server.network.protocol.http.OHttpUtils;
 import com.orientechnologies.orient.server.network.protocol.http.command.OServerCommandAuthenticatedDbAbstract;
-import com.tinkerpop.blueprints.impls.orient.OrientGraph;
+import com.tinkerpop.blueprints.impls.orient.OrientGraphNoTx;
 import com.tinkerpop.blueprints.impls.orient.OrientVertex;
 
 public class CreateNetworkPostCommand extends OServerCommandAuthenticatedDbAbstract {
@@ -31,7 +31,7 @@ public class CreateNetworkPostCommand extends OServerCommandAuthenticatedDbAbstr
     iRequest.data.commandInfo = "Execute ndex network creation";
 
     ODatabaseDocumentTx db = getProfiledDatabaseInstance(iRequest);
-    OrientGraph orientGraph = new OrientGraph(db);
+    OrientGraphNoTx orientGraph = new OrientGraphNoTx(db);
     ndexNetworkService.init(orientGraph);
 
     try {
@@ -58,7 +58,7 @@ public class CreateNetworkPostCommand extends OServerCommandAuthenticatedDbAbstr
     }
   }
 
-  private OrientVertex loadOwner(OrientGraph orientGraph, String accountid) {
+  private OrientVertex loadOwner(OrientGraphNoTx orientGraph, String accountid) {
     final OrientVertex vertex = orientGraph.getVertex(RidConverter.convertToRID(accountid));
 
     if (!vertex.getLabel().equals("xUser")) {
