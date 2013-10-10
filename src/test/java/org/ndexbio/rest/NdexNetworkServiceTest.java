@@ -14,13 +14,13 @@ import org.testng.annotations.Test;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.core.id.ORID;
 import com.orientechnologies.orient.core.storage.OCluster;
-import com.tinkerpop.blueprints.impls.orient.OrientGraphNoTx;
+import com.tinkerpop.blueprints.impls.orient.OrientGraph;
 import com.tinkerpop.blueprints.impls.orient.OrientVertex;
 
 @Test
 public class NdexNetworkServiceTest {
   private final String       jdexFile           = "/org/ndexbio/rest/testNetwork.jdex";
-  private OrientGraphNoTx    orientGraph;
+  private OrientGraph        orientGraph;
   private NdexNetworkService ndexNetworkService = new NdexNetworkService();
 
   @BeforeMethod
@@ -28,7 +28,7 @@ public class NdexNetworkServiceTest {
     ODatabaseDocumentTx databaseDocumentTx = new ODatabaseDocumentTx("memory:ndexNetworkServiceTest");
     databaseDocumentTx.create();
 
-    orientGraph = new OrientGraphNoTx(databaseDocumentTx);
+    orientGraph = new OrientGraph(databaseDocumentTx);
     ndexNetworkService.init(orientGraph);
   }
 

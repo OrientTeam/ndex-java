@@ -1,12 +1,6 @@
 package org.ndexbio.rest;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -24,9 +18,9 @@ import com.orientechnologies.orient.core.sql.query.OSQLSynchQuery;
 import com.tinkerpop.blueprints.Direction;
 import com.tinkerpop.blueprints.Edge;
 import com.tinkerpop.blueprints.Vertex;
+import com.tinkerpop.blueprints.impls.orient.OrientBaseGraph;
 import com.tinkerpop.blueprints.impls.orient.OrientEdge;
 import com.tinkerpop.blueprints.impls.orient.OrientElement;
-import com.tinkerpop.blueprints.impls.orient.OrientGraphNoTx;
 import com.tinkerpop.blueprints.impls.orient.OrientVertex;
 
 /**
@@ -35,7 +29,7 @@ import com.tinkerpop.blueprints.impls.orient.OrientVertex;
 public class NdexNetworkService {
   public static final NdexNetworkService INSTANCE = new NdexNetworkService();
 
-  public void init(OrientGraphNoTx orientGraph) {
+  public void init(OrientBaseGraph orientGraph) {
     orientGraph.getRawGraph().commit();
 
     if (orientGraph.getVertexType("xNetwork") == null) {
@@ -104,7 +98,7 @@ public class NdexNetworkService {
     }
   }
 
-  public OrientVertex createNetwork(OrientVertex owner, JsonNode networkJDEx, OrientGraphNoTx orientGraph) {
+  public OrientVertex createNetwork(OrientVertex owner, JsonNode networkJDEx, OrientBaseGraph orientGraph) {
     final OrientVertex network = orientGraph.addVertex("xNetwork", (String) null);
 
     owner.addEdge("xOwnsNetwork", network);
@@ -126,7 +120,7 @@ public class NdexNetworkService {
     return network;
   }
 
-  public boolean deleteNetwork(ORID networkRid, OrientGraphNoTx orientGraph) {
+  public boolean deleteNetwork(ORID networkRid, OrientBaseGraph orientGraph) {
     if (orientGraph.getVertex(networkRid) == null)
       return false;
 
@@ -144,7 +138,7 @@ public class NdexNetworkService {
     return true;
   }
 
-  public ObjectNode findNetworks(String searchExpression, int limit, int offset, OrientGraphNoTx orientGraph,
+  public ObjectNode findNetworks(String searchExpression, int limit, int offset, OrientBaseGraph orientGraph,
       ObjectMapper objectMapper) {
     int start = offset * limit;
 
@@ -177,7 +171,7 @@ public class NdexNetworkService {
     return result;
   }
 
-  public JsonNode getNetwork(ORID networkRid, OrientGraphNoTx orientGraph) {
+  public JsonNode getNetwork(ORID networkRid, OrientBaseGraph orientGraph) {
     final OrientVertex vNetwork = orientGraph.getVertex(networkRid);
     if (vNetwork == null)
       return null;
@@ -211,7 +205,7 @@ public class NdexNetworkService {
     return result;
   }
 
-  public JsonNode getNetworkByEdges(ORID networkId, int offset, int limit, OrientGraphNoTx orientGraph, ObjectMapper objectMapper) {
+  public JsonNode getNetworkByEdges(ORID networkId, int offset, int limit, OrientBaseGraph orientGraph, ObjectMapper objectMapper) {
     ObjectNode result = objectMapper.createObjectNode();
 
     Vertex vNetwork = orientGraph.getVertex(networkId);
@@ -259,7 +253,7 @@ public class NdexNetworkService {
     return result;
   }
 
-  public JsonNode getNetworkByNodes(ORID networkId, int offset, int limit, OrientGraphNoTx orientGraph, ObjectMapper objectMapper) {
+  public JsonNode getNetworkByNodes(ORID networkId, int offset, int limit, OrientBaseGraph orientGraph, ObjectMapper objectMapper) {
     ObjectNode result = objectMapper.createObjectNode();
 
     OrientVertex vNetwork = orientGraph.getVertex(networkId);
@@ -301,7 +295,7 @@ public class NdexNetworkService {
     return result;
   }
 
-  private void readEdges(OrientGraphNoTx orientGraph, OrientVertex vNetwork, ObjectMapper mapper, ArrayNode edges) {
+  private void readEdges(OrientBaseGraph orientGraph, OrientVertex vNetwork, ObjectMapper mapper, ArrayNode edges) {
     Set<OIdentifiable> dEdges = vNetwork.getProperty("ndexEdges");
     for (OIdentifiable dEdge : dEdges) {
       Edge eEdge = orientGraph.getEdge(dEdge);
@@ -313,7 +307,7 @@ public class NdexNetworkService {
     }
   }
 
-  private void readEdge(Edge eEdge, ObjectNode edge, OrientGraphNoTx orientGraph) {
+  private void readEdge(Edge eEdge, ObjectNode edge, OrientBaseGraph orientGraph) {
     Vertex vPredicate = orientGraph.getVertex(eEdge.getProperty("p"));
     edge.put("p", vPredicate.<String> getProperty("jdex_id"));
 
@@ -325,7 +319,7 @@ public class NdexNetworkService {
     edge.put("jid", RidConverter.convertFromRID((ORID) eEdge.getId()));
   }
 
-  private void readNodes(OrientGraphNoTx orientGraph, Vertex vNetwork, ObjectMapper mapper, ObjectNode nodes) {
+  private void readNodes(OrientBaseGraph orientGraph, Vertex vNetwork, ObjectMapper mapper, ObjectNode nodes) {
     Iterable<Edge> eNodes = vNetwork.getEdges(Direction.OUT);
     for (Edge eNode : eNodes) {
       Vertex vNode = eNode.getVertex(Direction.IN);
@@ -337,7 +331,7 @@ public class NdexNetworkService {
     }
   }
 
-  private void readNode(OrientGraphNoTx orientGraph, Vertex vNode, ObjectNode node) {
+  private void readNode(OrientBaseGraph orientGraph, Vertex vNode, ObjectNode node) {
     node.put("name", vNode.<String> getProperty("name"));
     node.put("jid", RidConverter.convertFromRID((ORID) vNode.getId()));
 
@@ -398,7 +392,7 @@ public class NdexNetworkService {
     network.setProperty("edgesCount", allEdges.size());
   }
 
-  private void createCitations(JsonNode networkJDEx, OrientGraphNoTx orientGraph, OrientVertex network,
+  private void createCitations(JsonNode networkJDEx, OrientBaseGraph orientGraph, OrientVertex network,
       HashMap<String, OrientVertex> networkIndex) {
     JsonNode citations = networkJDEx.get("citations");
     Iterator<String> citationsIterator = citations.getFieldNames();
@@ -437,7 +431,7 @@ public class NdexNetworkService {
     return result;
   }
 
-  private void createSupports(JsonNode networkJDEx, OrientGraphNoTx orientGraph, OrientVertex network,
+  private void createSupports(JsonNode networkJDEx, OrientBaseGraph orientGraph, OrientVertex network,
       HashMap<String, OrientVertex> networkIndex) {
     JsonNode supports = networkJDEx.get("supports");
     Iterator<String> supportsIterator = supports.getFieldNames();
@@ -459,7 +453,7 @@ public class NdexNetworkService {
     network.save();
   }
 
-  private void createNameSpaces(OrientVertex network, JsonNode networkJDEx, OrientGraphNoTx orientGraph,
+  private void createNameSpaces(OrientVertex network, JsonNode networkJDEx, OrientBaseGraph orientGraph,
       HashMap<String, OrientVertex> networkIndex) {
     JsonNode namespaces = networkJDEx.get("namespaces");
     Iterator<String> namespacesIterator = namespaces.getFieldNames();
@@ -483,7 +477,7 @@ public class NdexNetworkService {
     }
   }
 
-  private void createNodes(OrientVertex network, JsonNode networkJDEx, OrientGraphNoTx orientGraph,
+  private void createNodes(OrientVertex network, JsonNode networkJDEx, OrientBaseGraph orientGraph,
       HashMap<String, OrientVertex> networkIndex) {
     JsonNode nodes = networkJDEx.get("nodes");
     Iterator<String> nodesIterator = nodes.getFieldNames();
@@ -527,7 +521,7 @@ public class NdexNetworkService {
     network.setProperty("properties", propertiesMap);
   }
 
-  private void createTerms(JsonNode networkJDEx, OrientGraphNoTx orientGraph, Vertex network,
+  private void createTerms(JsonNode networkJDEx, OrientBaseGraph orientGraph, Vertex network,
       HashMap<String, OrientVertex> networkIndex) {
     final ArrayList<OrientVertex> functions = new ArrayList<OrientVertex>();
 

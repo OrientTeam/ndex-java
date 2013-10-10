@@ -11,7 +11,7 @@ import com.orientechnologies.orient.server.network.protocol.http.OHttpRequest;
 import com.orientechnologies.orient.server.network.protocol.http.OHttpResponse;
 import com.orientechnologies.orient.server.network.protocol.http.OHttpUtils;
 import com.orientechnologies.orient.server.network.protocol.http.command.OServerCommandAuthenticatedDbAbstract;
-import com.tinkerpop.blueprints.impls.orient.OrientGraphNoTx;
+import com.tinkerpop.blueprints.impls.orient.OrientGraph;
 
 /**
  * @author Andrey Lomakin <a href="mailto:lomakin.andrey@gmail.com">Andrey Lomakin</a>
@@ -49,7 +49,7 @@ public class GetNetworkByEdgesGetCommand extends OServerCommandAuthenticatedDbAb
     final ObjectMapper objectMapper = new ObjectMapper();
 
     ODatabaseDocumentTx db = getProfiledDatabaseInstance(iRequest);
-    OrientGraphNoTx orientGraph = new OrientGraphNoTx(db);
+    OrientGraph orientGraph = new OrientGraph(db);
     ndexNetworkService.init(orientGraph);
 
     try {

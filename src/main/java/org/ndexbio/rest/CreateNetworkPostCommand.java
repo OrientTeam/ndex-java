@@ -5,6 +5,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.node.ObjectNode;
 import org.ndexbio.rest.utils.RidConverter;
 
+import com.orientechnologies.common.log.OLogManager;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.core.id.ORID;
 import com.orientechnologies.orient.server.config.OServerCommandConfiguration;
@@ -12,7 +13,8 @@ import com.orientechnologies.orient.server.network.protocol.http.OHttpRequest;
 import com.orientechnologies.orient.server.network.protocol.http.OHttpResponse;
 import com.orientechnologies.orient.server.network.protocol.http.OHttpUtils;
 import com.orientechnologies.orient.server.network.protocol.http.command.OServerCommandAuthenticatedDbAbstract;
-import com.tinkerpop.blueprints.impls.orient.OrientGraphNoTx;
+import com.tinkerpop.blueprints.impls.orient.OrientBaseGraph;
+import com.tinkerpop.blueprints.impls.orient.OrientGraph;
 import com.tinkerpop.blueprints.impls.orient.OrientVertex;
 
 public class CreateNetworkPostCommand extends OServerCommandAuthenticatedDbAbstract {
@@ -31,7 +33,7 @@ public class CreateNetworkPostCommand extends OServerCommandAuthenticatedDbAbstr
     iRequest.data.commandInfo = "Execute ndex network creation";
 
     ODatabaseDocumentTx db = getProfiledDatabaseInstance(iRequest);
-    OrientGraphNoTx orientGraph = new OrientGraphNoTx(db);
+    OrientGraph orientGraph = new OrientGraph(db);
     ndexNetworkService.init(orientGraph);
 
     try {
@@ -52,13 +54,18 @@ public class CreateNetworkPostCommand extends OServerCommandAuthenticatedDbAbstr
 
       iResponse
           .send(OHttpUtils.STATUS_OK_CODE, OHttpUtils.STATUS_OK_DESCRIPTION, OHttpUtils.CONTENT_JSON, resultString, null, true);
-      return false;
+    } catch (Exception e) {
+      OLogManager.instance().error(this, "Error during network creation", e);
+      iResponse.send(OHttpUtils.STATUS_INTERNALERROR_CODE, OHttpUtils.STATUS_INTERNALERROR_DESCRIPTION,
+          OHttpUtils.CONTENT_TEXT_PLAIN, e.getMessage(), null, true);
     } finally {
       orientGraph.shutdown();
     }
+
+    return false;
   }
 
-  private OrientVertex loadOwner(OrientGraphNoTx orientGraph, String accountid) {
+  private OrientVertex loadOwner(OrientBaseGraph orientGraph, String accountid) {
     final OrientVertex vertex = orientGraph.getVertex(RidConverter.convertToRID(accountid));
 
     if (!vertex.getLabel().equals("xUser")) {
