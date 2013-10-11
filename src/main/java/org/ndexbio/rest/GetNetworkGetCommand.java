@@ -10,7 +10,7 @@ import com.orientechnologies.orient.server.network.protocol.http.OHttpRequest;
 import com.orientechnologies.orient.server.network.protocol.http.OHttpResponse;
 import com.orientechnologies.orient.server.network.protocol.http.OHttpUtils;
 import com.orientechnologies.orient.server.network.protocol.http.command.OServerCommandAuthenticatedDbAbstract;
-import com.tinkerpop.blueprints.impls.orient.OrientGraph;
+import com.tinkerpop.blueprints.impls.orient.OrientGraphNoTx;
 
 public class GetNetworkGetCommand extends OServerCommandAuthenticatedDbAbstract {
   private static final String[]    NAMES              = { "GET|ndexNetworkGet/*" };
@@ -27,7 +27,7 @@ public class GetNetworkGetCommand extends OServerCommandAuthenticatedDbAbstract 
     iRequest.data.commandInfo = "Execute ndex network retrieval";
 
     ODatabaseDocumentTx db = getProfiledDatabaseInstance(iRequest);
-    OrientGraph orientGraph = new OrientGraph(db);
+    OrientGraphNoTx orientGraph = new OrientGraphNoTx(db);
     try {
       ndexNetworkService.init(orientGraph);
       final String networkId = iRequest.parameters.get("networkid");

@@ -10,6 +10,7 @@ import org.ndexbio.rest.utils.RidConverter;
 
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.core.db.record.OIdentifiable;
+import com.orientechnologies.orient.core.exception.OConcurrentModificationException;
 import com.orientechnologies.orient.core.id.ORID;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OType;
@@ -29,7 +30,7 @@ import com.tinkerpop.blueprints.impls.orient.OrientVertex;
 public class NdexNetworkService {
   public static final NdexNetworkService INSTANCE = new NdexNetworkService();
 
-  public void init(OrientBaseGraph orientGraph) {
+  public synchronized void init(OrientBaseGraph orientGraph) {
     orientGraph.getRawGraph().commit();
 
     if (orientGraph.getVertexType("xNetwork") == null) {
@@ -101,7 +102,23 @@ public class NdexNetworkService {
   public OrientVertex createNetwork(OrientVertex owner, JsonNode networkJDEx, OrientBaseGraph orientGraph) {
     final OrientVertex network = orientGraph.addVertex("xNetwork", (String) null);
 
-    owner.addEdge("xOwnsNetwork", network);
+    int reties = 0;
+    while (true)
+      try {
+        owner.addEdge("xOwnsNetwork", network);
+        break;
+      } catch (OConcurrentModificationException ome) {
+        try {
+          Thread.sleep(100);
+          owner.getRecord().reload();
+        } catch (InterruptedException e) {
+          Thread.interrupted();
+          throw new IllegalStateException("Thread was interrupted", e);
+        }
+        reties++;
+        if (reties > 10)
+          throw ome;
+      }
 
     if (networkJDEx.get("format") != null)
       network.setProperty("format", networkJDEx.get("format").asText());

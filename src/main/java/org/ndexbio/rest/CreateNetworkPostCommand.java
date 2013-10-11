@@ -14,7 +14,7 @@ import com.orientechnologies.orient.server.network.protocol.http.OHttpResponse;
 import com.orientechnologies.orient.server.network.protocol.http.OHttpUtils;
 import com.orientechnologies.orient.server.network.protocol.http.command.OServerCommandAuthenticatedDbAbstract;
 import com.tinkerpop.blueprints.impls.orient.OrientBaseGraph;
-import com.tinkerpop.blueprints.impls.orient.OrientGraph;
+import com.tinkerpop.blueprints.impls.orient.OrientGraphNoTx;
 import com.tinkerpop.blueprints.impls.orient.OrientVertex;
 
 public class CreateNetworkPostCommand extends OServerCommandAuthenticatedDbAbstract {
@@ -33,7 +33,7 @@ public class CreateNetworkPostCommand extends OServerCommandAuthenticatedDbAbstr
     iRequest.data.commandInfo = "Execute ndex network creation";
 
     ODatabaseDocumentTx db = getProfiledDatabaseInstance(iRequest);
-    OrientGraph orientGraph = new OrientGraph(db);
+    OrientGraphNoTx orientGraph = new OrientGraphNoTx(db);
     ndexNetworkService.init(orientGraph);
 
     try {
