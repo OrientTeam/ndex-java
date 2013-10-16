@@ -137,7 +137,7 @@ public class NdexNetworkService {
     return true;
   }
 
-  public synchronized ObjectNode findNetworks(String searchExpression, int limit, int offset, OrientBaseGraph orientGraph,
+  public ObjectNode findNetworks(String searchExpression, int limit, int offset, OrientBaseGraph orientGraph,
       ObjectMapper objectMapper) {
     int start = offset * limit;
 
@@ -170,7 +170,7 @@ public class NdexNetworkService {
     return result;
   }
 
-  public synchronized JsonNode getNetwork(ORID networkRid, OrientBaseGraph orientGraph) {
+  public JsonNode getNetwork(ORID networkRid, OrientBaseGraph orientGraph) {
     final OrientVertex vNetwork = orientGraph.getVertex(networkRid);
     if (vNetwork == null)
       return null;
@@ -204,8 +204,7 @@ public class NdexNetworkService {
     return result;
   }
 
-  public synchronized JsonNode getNetworkByEdges(ORID networkId, int offset, int limit, OrientBaseGraph orientGraph,
-      ObjectMapper objectMapper) {
+  public JsonNode getNetworkByEdges(ORID networkId, int offset, int limit, OrientBaseGraph orientGraph, ObjectMapper objectMapper) {
     ObjectNode result = objectMapper.createObjectNode();
 
     Vertex vNetwork = orientGraph.getVertex(networkId);
@@ -253,8 +252,7 @@ public class NdexNetworkService {
     return result;
   }
 
-  public synchronized JsonNode getNetworkByNodes(ORID networkId, int offset, int limit, OrientBaseGraph orientGraph,
-      ObjectMapper objectMapper) {
+  public JsonNode getNetworkByNodes(ORID networkId, int offset, int limit, OrientBaseGraph orientGraph, ObjectMapper objectMapper) {
     ObjectNode result = objectMapper.createObjectNode();
 
     OrientVertex vNetwork = orientGraph.getVertex(networkId);
