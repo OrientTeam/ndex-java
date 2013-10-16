@@ -10,7 +10,6 @@ import org.ndexbio.rest.utils.RidConverter;
 
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.core.db.record.OIdentifiable;
-import com.orientechnologies.orient.core.exception.OConcurrentModificationException;
 import com.orientechnologies.orient.core.id.ORID;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OType;
@@ -99,26 +98,9 @@ public class NdexNetworkService {
     }
   }
 
-  public OrientVertex createNetwork(OrientVertex owner, JsonNode networkJDEx, OrientBaseGraph orientGraph) {
+  public synchronized OrientVertex createNetwork(OrientVertex owner, JsonNode networkJDEx, OrientBaseGraph orientGraph) {
     final OrientVertex network = orientGraph.addVertex("xNetwork", (String) null);
-
-    int reties = 0;
-    while (true)
-      try {
-        owner.addEdge("xOwnsNetwork", network);
-        break;
-      } catch (OConcurrentModificationException ome) {
-        try {
-          Thread.sleep(100);
-          owner.getRecord().reload();
-        } catch (InterruptedException e) {
-          Thread.interrupted();
-          throw new IllegalStateException("Thread was interrupted", e);
-        }
-        reties++;
-        if (reties > 10)
-          throw ome;
-      }
+    owner.addEdge("xOwnsNetwork", network);
 
     if (networkJDEx.get("format") != null)
       network.setProperty("format", networkJDEx.get("format").asText());
@@ -137,7 +119,7 @@ public class NdexNetworkService {
     return network;
   }
 
-  public boolean deleteNetwork(ORID networkRid, OrientBaseGraph orientGraph) {
+  public synchronized boolean deleteNetwork(ORID networkRid, OrientBaseGraph orientGraph) {
     if (orientGraph.getVertex(networkRid) == null)
       return false;
 
@@ -155,7 +137,7 @@ public class NdexNetworkService {
     return true;
   }
 
-  public ObjectNode findNetworks(String searchExpression, int limit, int offset, OrientBaseGraph orientGraph,
+  public synchronized ObjectNode findNetworks(String searchExpression, int limit, int offset, OrientBaseGraph orientGraph,
       ObjectMapper objectMapper) {
     int start = offset * limit;
 
@@ -188,7 +170,7 @@ public class NdexNetworkService {
     return result;
   }
 
-  public JsonNode getNetwork(ORID networkRid, OrientBaseGraph orientGraph) {
+  public synchronized JsonNode getNetwork(ORID networkRid, OrientBaseGraph orientGraph) {
     final OrientVertex vNetwork = orientGraph.getVertex(networkRid);
     if (vNetwork == null)
       return null;
@@ -222,7 +204,8 @@ public class NdexNetworkService {
     return result;
   }
 
-  public JsonNode getNetworkByEdges(ORID networkId, int offset, int limit, OrientBaseGraph orientGraph, ObjectMapper objectMapper) {
+  public synchronized JsonNode getNetworkByEdges(ORID networkId, int offset, int limit, OrientBaseGraph orientGraph,
+      ObjectMapper objectMapper) {
     ObjectNode result = objectMapper.createObjectNode();
 
     Vertex vNetwork = orientGraph.getVertex(networkId);
@@ -270,7 +253,8 @@ public class NdexNetworkService {
     return result;
   }
 
-  public JsonNode getNetworkByNodes(ORID networkId, int offset, int limit, OrientBaseGraph orientGraph, ObjectMapper objectMapper) {
+  public synchronized JsonNode getNetworkByNodes(ORID networkId, int offset, int limit, OrientBaseGraph orientGraph,
+      ObjectMapper objectMapper) {
     ObjectNode result = objectMapper.createObjectNode();
 
     OrientVertex vNetwork = orientGraph.getVertex(networkId);
@@ -466,8 +450,6 @@ public class NdexNetworkService {
 
       networkIndex.put(index, vSupport);
     }
-
-    network.save();
   }
 
   private void createNameSpaces(OrientVertex network, JsonNode networkJDEx, OrientBaseGraph orientGraph,
@@ -524,7 +506,7 @@ public class NdexNetworkService {
     network.setProperty("nodesCount", nodesCount);
   }
 
-  private void createProperties(JsonNode networkJDEx, Vertex network) {
+  private void createProperties(JsonNode networkJDEx, OrientVertex network) {
     Map<String, String> propertiesMap = new HashMap<String, String>();
 
     JsonNode properties = networkJDEx.get("properties");
@@ -538,7 +520,7 @@ public class NdexNetworkService {
     network.setProperty("properties", propertiesMap);
   }
 
-  private void createTerms(JsonNode networkJDEx, OrientBaseGraph orientGraph, Vertex network,
+  private void createTerms(JsonNode networkJDEx, OrientBaseGraph orientGraph, OrientVertex network,
       HashMap<String, OrientVertex> networkIndex) {
     final ArrayList<OrientVertex> functions = new ArrayList<OrientVertex>();
 

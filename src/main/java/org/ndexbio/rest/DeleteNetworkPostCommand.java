@@ -6,13 +6,14 @@ import org.codehaus.jackson.node.ObjectNode;
 import org.ndexbio.rest.utils.RidConverter;
 
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
+import com.orientechnologies.orient.core.exception.OConcurrentModificationException;
 import com.orientechnologies.orient.core.id.ORID;
 import com.orientechnologies.orient.server.config.OServerCommandConfiguration;
 import com.orientechnologies.orient.server.network.protocol.http.OHttpRequest;
 import com.orientechnologies.orient.server.network.protocol.http.OHttpResponse;
 import com.orientechnologies.orient.server.network.protocol.http.OHttpUtils;
 import com.orientechnologies.orient.server.network.protocol.http.command.OServerCommandAuthenticatedDbAbstract;
-import com.tinkerpop.blueprints.impls.orient.OrientGraphNoTx;
+import com.tinkerpop.blueprints.impls.orient.OrientGraph;
 
 /**
  * @author Andrey Lomakin <a href="mailto:lomakin.andrey@gmail.com">Andrey Lomakin</a>
@@ -37,20 +38,34 @@ public class DeleteNetworkPostCommand extends OServerCommandAuthenticatedDbAbstr
     final String networkId = rootNode.get("networkid").asText();
     final ORID networkRid = RidConverter.convertToRID(networkId);
 
-    ODatabaseDocumentTx db = getProfiledDatabaseInstance(iRequest);
-    OrientGraphNoTx orientGraph = new OrientGraphNoTx(db);
-    ndexNetworkService.init(orientGraph);
-    try {
+    OrientGraph orientGraph = null;
+    int retries = 0;
 
-      boolean deleted = ndexNetworkService.deleteNetwork(networkRid, orientGraph);
-      ObjectNode result = objectMapper.createObjectNode();
-      result.put("deleted", deleted);
+    while (true)
+      try {
+        ODatabaseDocumentTx db = getProfiledDatabaseInstance(iRequest);
+        orientGraph = new OrientGraph(db);
 
-      iResponse.send(OHttpUtils.STATUS_OK_CODE, OHttpUtils.STATUS_OK_DESCRIPTION, OHttpUtils.CONTENT_JSON, result.toString(), null,
-          true);
-    } finally {
-      orientGraph.shutdown();
-    }
+        ndexNetworkService.init(orientGraph);
+
+        boolean deleted = ndexNetworkService.deleteNetwork(networkRid, orientGraph);
+        ObjectNode result = objectMapper.createObjectNode();
+        result.put("deleted", deleted);
+
+        iResponse.send(OHttpUtils.STATUS_OK_CODE, OHttpUtils.STATUS_OK_DESCRIPTION, OHttpUtils.CONTENT_JSON, result.toString(),
+            null, true);
+
+        break;
+      } catch (OConcurrentModificationException cme) {
+        retries++;
+
+        if (retries > 10)
+          throw cme;
+      } finally {
+        if (orientGraph != null)
+          orientGraph.shutdown();
+      }
+
     return false;
   }
 
