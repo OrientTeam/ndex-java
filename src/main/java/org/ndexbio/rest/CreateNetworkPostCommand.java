@@ -14,6 +14,7 @@ import com.orientechnologies.orient.server.network.protocol.http.OHttpRequest;
 import com.orientechnologies.orient.server.network.protocol.http.OHttpResponse;
 import com.orientechnologies.orient.server.network.protocol.http.OHttpUtils;
 import com.orientechnologies.orient.server.network.protocol.http.command.OServerCommandAuthenticatedDbAbstract;
+import com.tinkerpop.blueprints.TransactionalGraph;
 import com.tinkerpop.blueprints.impls.orient.OrientBaseGraph;
 import com.tinkerpop.blueprints.impls.orient.OrientGraph;
 import com.tinkerpop.blueprints.impls.orient.OrientVertex;
@@ -67,6 +68,7 @@ public class CreateNetworkPostCommand extends OServerCommandAuthenticatedDbAbstr
           throw cme;
         }
       } catch (Exception e) {
+        orientGraph.stopTransaction(TransactionalGraph.Conclusion.FAILURE);
         OLogManager.instance().error(this, "Error during network creation", e);
         iResponse.send(OHttpUtils.STATUS_INTERNALERROR_CODE, OHttpUtils.STATUS_INTERNALERROR_DESCRIPTION,
             OHttpUtils.CONTENT_TEXT_PLAIN, e.getMessage(), null, true);
