@@ -1,6 +1,12 @@
 package org.ndexbio.rest;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -577,11 +583,13 @@ public class NdexNetworkService {
     }
   }
 
-  private OrientVertex loadFromIndex(HashMap<String, OrientVertex> networkIndex, JsonNode jTerm, String fieldName) {
+  private OrientVertex loadFromIndex(HashMap<String, OrientVertex> networkIndex, JsonNode jTerm, String fieldName)
+      throws JdexParsingException {
     final String value = jTerm.get(fieldName).asText();
     final OrientVertex result = networkIndex.get(value);
     if (result == null) {
-      throw new RuntimeException("Failed to load " + fieldName + " from index. (id = " + value + ")");
+      throw new JdexParsingException("Failed to load field '" + fieldName + "' from index. (id = " + value
+          + ", referencing object = " + jTerm.toString() + ")");
     }
     return result;
   }
